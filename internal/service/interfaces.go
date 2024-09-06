@@ -3,7 +3,7 @@ package service
 import "JwtTestTask/models"
 
 type IAuthService interface {
-	SignIn(id string) (map[string]interface{}, error)
-	SignUp(user models.User) (string, error)
-	RefreshToken(id string) (map[string]interface{}, error)
+	GenerateTokens(user models.User, ipClient string) (map[string]string, error)
+	Create(user models.User) (string, error)
+	RefreshTokens(id string) (map[string]string, error)
 }

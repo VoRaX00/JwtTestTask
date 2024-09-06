@@ -3,8 +3,8 @@ package main
 import (
 	"JwtTestTask/internal/handler"
 	"JwtTestTask/internal/repository"
+	"JwtTestTask/internal/server"
 	"JwtTestTask/internal/service"
-	server "JwtTestTask/server"
 	"context"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
