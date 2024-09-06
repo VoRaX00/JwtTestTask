@@ -7,6 +7,7 @@ import (
 	server "JwtTestTask/server"
 	"context"
 	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"os"
@@ -49,7 +50,7 @@ func main() {
 
 	srv := new(server.Server)
 	go func() {
-		if err = srv.Run(viper.GetString("db.port"), handlers.InitRoutes()); err != nil {
+		if err = srv.Run(viper.GetString("server.port"), handlers.InitRoutes()); err != nil {
 			logrus.Fatalf("Run server error, %s", err.Error())
 		}
 	}()
