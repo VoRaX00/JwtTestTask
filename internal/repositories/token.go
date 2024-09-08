@@ -2,8 +2,11 @@ package repositories
 
 import (
 	"JwtTestTask/models"
+	"database/sql"
+	"errors"
 	"fmt"
 	"github.com/jmoiron/sqlx"
+	"time"
 )
 
 type TokenRepository struct {
@@ -22,14 +25,30 @@ func (r *TokenRepository) Create(token models.RefreshToken) error {
 	return err
 }
 
-func (r *TokenRepository) RefreshTokens(tokenHash, ipClient string) (string, error) {
-	var token models.RefreshToken
-	query := fmt.Sprintf("SELETE * FROM refresh_tokens WHERE refresh_token_hash=$1")
-	err := r.db.Get(&token, query, tokenHash)
+func (r *TokenRepository) RefreshTokens(newTokenHash, tokenHash string, ttl time.Duration) error {
+	var userId string
+	var expiresAt time.Time
+	var revoked bool
+	query := fmt.Sprintf(`SELETE user_id, expires_at, revoked FROM refresh_tokens WHERE refresh_token_hash=$1`)
+	err := r.db.QueryRow(query, tokenHash).Scan(&userId, &expiresAt, &revoked)
 	if err != nil {
-		return "", err
+		if errors.Is(err, sql.ErrNoRows) {
+			return errors.New("refresh token not found")
+		}
+		return err
 	}
-	return "", err
+
+	if revoked {
+		return errors.New("token is revoked")
+	}
+	if time.Now().After(expiresAt) {
+		return errors.New("token is expired")
+	}
+
+	expiresAt = time.Now().Add(ttl)
+	query = fmt.Sprintf("UPDATE refresh_tokens SET refresh_token_hash=$1, expires_at=$2, created_at=CURRENT_TIMESTAMP WHERE user_id=$3")
+	_, err = r.db.Exec(query, newTokenHash, expiresAt, userId)
+	return err
 }
 
 func (r *TokenRepository) GetUserEmail(token string) (string, error) {

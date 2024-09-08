@@ -54,7 +54,30 @@ func (s *TokenService) ParseRefreshToken(token string) (string, error) {
 }
 
 func (s *TokenService) RefreshTokens(token, ipClient string) (map[string]string, error) {
-	return nil, nil
+	tokens := map[string]string{}
+
+	refreshToken, err := s.tokenManager.NewRefreshToken(ipClient, refreshTokenTTL)
+	if err != nil {
+		return nil, err
+	}
+	hashNewToken, err := s.tokenManager.HashRefreshToken(refreshToken)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.repo.RefreshTokens(hashNewToken, token, refreshTokenTTL)
+	if err != nil {
+		return nil, err
+	}
+
+	accessToken, err := s.tokenManager.NewAccessToken(ipClient, accessTokenTTL)
+	if err != nil {
+		return nil, err
+	}
+
+	tokens["access_token"] = accessToken
+	tokens["refresh_token"] = refreshToken
+	return tokens, nil
 }
 
 func (s *TokenService) create(token, userId string) error {

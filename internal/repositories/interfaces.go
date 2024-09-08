@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"JwtTestTask/models"
+	"time"
 )
 
 type IUserRepository interface {
@@ -10,6 +11,6 @@ type IUserRepository interface {
 
 type ITokenRepository interface {
 	Create(token models.RefreshToken) error
-	RefreshTokens(tokenHash, ipClient string) (string, error)
+	RefreshTokens(newTokenHash, tokenHash string, ttl time.Duration) error
 	GetUserEmail(token string) (string, error)
 }
