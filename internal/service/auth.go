@@ -52,6 +52,11 @@ func (s *AuthService) GenerateTokens(user models.User, ipClient string) (map[str
 	}
 
 	tokens["refresh_token"] = refreshToken
+
+	err = s.addToken(refreshToken, user.Id)
+	if err != nil {
+		return nil, err
+	}
 	return tokens, nil
 }
 
@@ -61,12 +66,27 @@ func (s *AuthService) Create(user models.User) (string, error) {
 	return s.repo.Create(user)
 }
 
-func (s *AuthService) RefreshTokens(id string) (map[string]string, error) {
-	return s.repo.RefreshTokens(id)
-}
-
 func (s *AuthService) generatePasswordHash(password string) string {
 	hash := sha256.New()
 	hash.Write([]byte(password))
 	return fmt.Sprintf("%x", hash.Sum([]byte(salt)))
+}
+
+func (s *AuthService) addToken(token, userId string) error {
+	tokenManager, err := auth.NewManager(signingKey)
+	if err != nil {
+		return err
+	}
+
+	hash, err := tokenManager.HashRefreshToken(token)
+	if err != nil {
+		return err
+	}
+
+	refreshToken := models.RefreshToken{
+		UserId:    userId,
+		TokenHash: hash,
+		TTL:       refreshTokenTTL,
+	}
+	return s.repo.AddToken(refreshToken)
 }

@@ -3,6 +3,7 @@ package auth
 import (
 	"errors"
 	"github.com/dgrijalva/jwt-go"
+	"golang.org/x/crypto/bcrypt"
 	"time"
 )
 
@@ -12,14 +13,14 @@ type tokenClaims struct {
 }
 
 type Manager struct {
-	signInKey string
+	signingKey string
 }
 
 func NewManager(signInKey string) (*Manager, error) {
 	if signInKey == "" {
 		return nil, errors.New("signInKey is empty")
 	}
-	return &Manager{signInKey: signInKey}, nil
+	return &Manager{signingKey: signInKey}, nil
 }
 
 func (m *Manager) NewAccessToken(ipClient string, ttl time.Duration) (string, error) {
@@ -33,9 +34,25 @@ func (m *Manager) NewAccessToken(ipClient string, ttl time.Duration) (string, er
 			UserIp: ipClient,
 		},
 	)
-	return token.SignedString([]byte(m.signInKey))
+	return token.SignedString([]byte(m.signingKey))
 }
 
 func (m *Manager) NewRefreshToken(ipClient string, ttl time.Duration) (string, error) {
+	token := jwt.NewWithClaims(
+		jwt.SigningMethodES256, &tokenClaims{
+			StandardClaims: jwt.StandardClaims{
+				ExpiresAt: time.Now().Add(ttl).Unix(),
+				IssuedAt:  time.Now().Unix(),
+			},
+			UserIp: ipClient,
+		})
+	return token.SignedString([]byte(m.signingKey))
+}
 
+func (m *Manager) HashRefreshToken(token string) (string, error) {
+	hash, err := bcrypt.GenerateFromPassword([]byte(token), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+	return string(hash), nil
 }
