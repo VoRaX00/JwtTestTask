@@ -2,9 +2,10 @@ package main
 
 import (
 	"JwtTestTask/internal/handler"
-	"JwtTestTask/internal/repository"
+	"JwtTestTask/internal/repositories"
 	"JwtTestTask/internal/server"
-	"JwtTestTask/internal/service"
+	"JwtTestTask/internal/services"
+	"JwtTestTask/pkg/auth"
 	"context"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
@@ -30,7 +31,7 @@ func main() {
 		logrus.Fatalf("Load env error, %s", err.Error())
 	}
 
-	cfg := repository.Config{
+	cfg := repositories.Config{
 		Host:     viper.GetString("db.host"),
 		Port:     viper.GetString("db.port"),
 		Username: viper.GetString("db.username"),
@@ -39,13 +40,20 @@ func main() {
 		SSLMode:  viper.GetString("db.sslmode"),
 	}
 
-	db, err := repository.NewPostgresDB(cfg)
+	db, err := repositories.NewPostgresDB(cfg)
 	if err != nil {
 		logrus.Fatalf("Init db error, %s", err.Error())
 	}
 
-	repos := repository.NewRepository(db)
-	services := service.NewService(repos)
+	repos := repositories.NewRepository(db)
+
+	signingKey := os.Getenv("JWT_SIGNING_KEY")
+	tokenManager, err := auth.NewManager(signingKey)
+	if err != nil {
+		logrus.Fatalf("Init token manager error, %s", err.Error())
+	}
+	services := services.NewService(repos, tokenManager)
+
 	handlers := handler.NewHandler(services)
 
 	srv := new(server.Server)

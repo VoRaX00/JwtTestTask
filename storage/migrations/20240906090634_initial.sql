@@ -8,8 +8,8 @@ CREATE TABLE users (
 
 CREATE TABLE refresh_tokens (
     id SERIAL PRIMARY KEY,
-    userId UUID REFERENCES Users(id) ON DELETE CASCADE,
-    refresh_token_hash TEXT NOT NULL,
+    user_id UUID REFERENCES Users(id) ON DELETE CASCADE,
+    refresh_token_hash TEXT UNIQUE NOT NULL,
     expires_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     revoked BOOLEAN DEFAULT FALSE
