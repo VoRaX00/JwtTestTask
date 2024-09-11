@@ -4,6 +4,8 @@ import (
 	"JwtTestTask/internal/repositories"
 	"JwtTestTask/models"
 	"JwtTestTask/pkg/auth"
+	"net/smtp"
+	"os"
 	"time"
 )
 
@@ -34,40 +36,50 @@ func (s *TokenService) GenerateTokens(userId, ipClient string) (map[string]strin
 	}
 
 	tokens["access_token"] = accessToken
-	refreshToken, err := s.tokenManager.NewRefreshToken(ipClient, refreshTokenTTL)
+	refreshToken, err := s.tokenManager.NewRefreshToken()
 	if err != nil {
 		return nil, err
 	}
 
 	tokens["refresh_token"] = refreshToken
 
-	err = s.create(refreshToken, userId)
+	err = s.create(refreshToken, userId, ipClient)
 	if err != nil {
 		return nil, err
 	}
 	return tokens, nil
 }
 
-func (s *TokenService) ParseRefreshToken(token string) (string, error) {
-	ip, err := s.tokenManager.ParseRefreshToken(token)
-	return ip, err
-}
+const emailWarning = "В ваш аккаунт зашли с другого устройства"
 
 func (s *TokenService) RefreshTokens(token, ipClient string) (map[string]string, error) {
 	tokens := map[string]string{}
 
-	refreshToken, err := s.tokenManager.NewRefreshToken(ipClient, refreshTokenTTL)
+	refreshToken, err := s.tokenManager.NewRefreshToken()
 	if err != nil {
 		return nil, err
 	}
+
 	hashNewToken, err := s.tokenManager.HashRefreshToken(refreshToken)
 	if err != nil {
 		return nil, err
 	}
 
-	err = s.repo.RefreshTokens(hashNewToken, token, refreshTokenTTL)
+	ip, err := s.repo.RefreshTokens(hashNewToken, token, ipClient, refreshTokenTTL)
 	if err != nil {
 		return nil, err
+	}
+
+	if ip != "" {
+		email, err := s.repo.GetUserEmail(hashNewToken)
+		if err != nil {
+			return nil, err
+		}
+
+		err = s.SendMessageEmail(email, emailWarning)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	accessToken, err := s.tokenManager.NewAccessToken(ipClient, accessTokenTTL)
@@ -80,7 +92,7 @@ func (s *TokenService) RefreshTokens(token, ipClient string) (map[string]string,
 	return tokens, nil
 }
 
-func (s *TokenService) create(token, userId string) error {
+func (s *TokenService) create(token, userId, ipClient string) error {
 	hash, err := s.tokenManager.HashRefreshToken(token)
 	if err != nil {
 		return err
@@ -89,9 +101,22 @@ func (s *TokenService) create(token, userId string) error {
 	refreshToken := models.RefreshToken{
 		UserId:           userId,
 		RefreshTokenHash: hash,
+		Ip:               ipClient,
 		ExpiresAt:        refreshTokenTTL,
 	}
 	return s.repo.Create(refreshToken)
+}
+
+func (s *TokenService) SendMessageEmail(email, message string) error {
+	from := os.Getenv("SMTP_EMAIL")
+	password := os.Getenv("SMTP_PASSWORD")
+	to := []string{email}
+	smtpHost := os.Getenv("SMTP_HOST")
+	smtpPort := os.Getenv("SMTP_PORT")
+	byteMessage := []byte(message)
+	authSmtp := smtp.PlainAuth("", from, password, smtpHost)
+	err := smtp.SendMail(smtpHost+":"+smtpPort, authSmtp, from, to, byteMessage)
+	return err
 }
 
 func (s *TokenService) GetUserEmail(token string) (string, error) {

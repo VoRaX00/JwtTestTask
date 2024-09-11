@@ -8,11 +8,11 @@ CREATE TABLE users (
 
 CREATE TABLE refresh_tokens (
     id SERIAL PRIMARY KEY,
-    user_id UUID REFERENCES Users(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES Users(id) ON DELETE CASCADE NOT NULL ,
     refresh_token_hash TEXT UNIQUE NOT NULL,
-    expires_at TIMESTAMPTZ,
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-    revoked BOOLEAN DEFAULT FALSE
+    ip VARCHAR(45) NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL ,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 -- +goose StatementEnd
 

@@ -20,35 +20,35 @@ func NewTokenRepository(db *sqlx.DB) *TokenRepository {
 }
 
 func (r *TokenRepository) Create(token models.RefreshToken) error {
-	query := fmt.Sprintf("INSERT INTO refresh_tokens (userId, refresh_token_hash, expires_at) VALUES ($1, $2, $3) RETURNING id")
+	query := fmt.Sprintf("INSERT INTO refresh_tokens (userId, refresh_token_hash, ip, expires_at) VALUES ($1, $2, $3, $4) RETURNING id")
 	err := r.db.QueryRow(query, token.UserId, token.RefreshTokenHash, token.ExpiresAt).Err()
 	return err
 }
 
-func (r *TokenRepository) RefreshTokens(newTokenHash, tokenHash string, ttl time.Duration) error {
+func (r *TokenRepository) RefreshTokens(newTokenHash, tokenHash, ipClient string, ttl time.Duration) (string, error) {
 	var userId string
 	var expiresAt time.Time
-	var revoked bool
-	query := fmt.Sprintf(`SELETE user_id, expires_at, revoked FROM refresh_tokens WHERE refresh_token_hash=$1`)
-	err := r.db.QueryRow(query, tokenHash).Scan(&userId, &expiresAt, &revoked)
+	var ip string
+	query := fmt.Sprintf(`SELETE user_id, expires_at, ip FROM refresh_tokens WHERE refresh_token_hash=$1`)
+	err := r.db.QueryRow(query, tokenHash).Scan(&userId, &expiresAt, &ip)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return errors.New("refresh token not found")
+			return "", errors.New("refresh token not found")
 		}
-		return err
+		return "", err
 	}
 
-	if revoked {
-		return errors.New("token is revoked")
-	}
 	if time.Now().After(expiresAt) {
-		return errors.New("token is expired")
+		return "", errors.New("token is expired")
 	}
 
 	expiresAt = time.Now().Add(ttl)
 	query = fmt.Sprintf("UPDATE refresh_tokens SET refresh_token_hash=$1, expires_at=$2, created_at=CURRENT_TIMESTAMP WHERE user_id=$3")
 	_, err = r.db.Exec(query, newTokenHash, expiresAt, userId)
-	return err
+	if ip != ipClient {
+		return ip, err
+	}
+	return "", err
 }
 
 func (r *TokenRepository) GetUserEmail(token string) (string, error) {

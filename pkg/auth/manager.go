@@ -1,10 +1,11 @@
 package auth
 
 import (
+	"encoding/base64"
 	"errors"
-	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"golang.org/x/crypto/bcrypt"
+	"math/rand"
 	"time"
 )
 
@@ -38,16 +39,14 @@ func (m *Manager) NewAccessToken(ipClient string, ttl time.Duration) (string, er
 	return token.SignedString([]byte(m.signingKey))
 }
 
-func (m *Manager) NewRefreshToken(ipClient string, ttl time.Duration) (string, error) {
-	token := jwt.NewWithClaims(
-		jwt.SigningMethodES256, &tokenClaims{
-			StandardClaims: jwt.StandardClaims{
-				ExpiresAt: time.Now().Add(ttl).Unix(),
-				IssuedAt:  time.Now().Unix(),
-			},
-			UserIp: ipClient,
-		})
-	return token.SignedString([]byte(m.signingKey))
+func (m *Manager) NewRefreshToken() (string, error) {
+	b := make([]byte, 32)
+	s := rand.NewSource(time.Now().Unix())
+	r := rand.New(s)
+	if _, err := r.Read(b); err != nil {
+		return "", err
+	}
+	return base64.StdEncoding.EncodeToString(b), nil
 }
 
 func (m *Manager) HashRefreshToken(token string) (string, error) {
@@ -56,22 +55,4 @@ func (m *Manager) HashRefreshToken(token string) (string, error) {
 		return "", err
 	}
 	return string(hash), nil
-}
-
-func (m *Manager) ParseRefreshToken(refreshToken string) (string, error) {
-	token, err := jwt.ParseWithClaims(refreshToken, &tokenClaims{}, func(t *jwt.Token) (interface{}, error) {
-		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
-		}
-		return []byte(m.signingKey), nil
-	})
-	if err != nil {
-		return "", err
-	}
-
-	claims, ok := token.Claims.(*tokenClaims)
-	if !ok || !token.Valid {
-		return "", errors.New("invalid token")
-	}
-	return claims.UserIp, nil
 }

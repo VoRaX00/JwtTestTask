@@ -11,6 +11,6 @@ type IUserRepository interface {
 
 type ITokenRepository interface {
 	Create(token models.RefreshToken) error
-	RefreshTokens(newTokenHash, tokenHash string, ttl time.Duration) error
+	RefreshTokens(newTokenHash, tokenHash, ipClient string, ttl time.Duration) (string, error)
 	GetUserEmail(token string) (string, error)
 }

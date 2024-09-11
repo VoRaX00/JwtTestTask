@@ -10,8 +10,8 @@ type IUserService interface {
 
 type ITokenService interface {
 	GenerateTokens(userId, ipClient string) (map[string]string, error)
+	SendMessageEmail(email, message string) error
 	RefreshTokens(token, ipClient string) (map[string]string, error)
-	ParseRefreshToken(token string) (string, error)
 	GetUserEmail(token string) (string, error)
-	create(token, userId string) error
+	create(token, userId, ipClient string) error
 }

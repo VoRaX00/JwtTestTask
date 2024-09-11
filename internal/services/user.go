@@ -29,8 +29,3 @@ func (s *UserService) generatePasswordHash(password string) string {
 	hash.Write([]byte(password))
 	return fmt.Sprintf("%x", hash.Sum([]byte(salt)))
 }
-
-func (s *UserService) SendMessageEmail(email, message string) error {
-	//TODO: release function
-	return nil
-}

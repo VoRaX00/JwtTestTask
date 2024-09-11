@@ -40,8 +40,6 @@ func (h *Handler) SignUp(c *gin.Context) {
 	})
 }
 
-const emailWarning = "В ваш аккаунт зашли с другого устройства"
-
 func (h *Handler) RefreshTokens(c *gin.Context) {
 	token := c.Query("refresh_token")
 
@@ -50,23 +48,6 @@ func (h *Handler) RefreshTokens(c *gin.Context) {
 	if err != nil {
 		NewErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
-	}
-
-	tokenIp, err := h.service.ParseRefreshToken(token)
-	if err != nil {
-		NewErrorResponse(c, http.StatusInternalServerError, err.Error())
-	}
-
-	if ip != tokenIp {
-		email, err := h.service.GetUserEmail(token)
-		if err != nil {
-			NewErrorResponse(c, http.StatusInternalServerError, err.Error())
-		}
-
-		err = SendMessageEmail(email, emailWarning)
-		if err != nil {
-			NewErrorResponse(c, http.StatusInternalServerError, err.Error())
-		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{
