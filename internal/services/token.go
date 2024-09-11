@@ -10,7 +10,6 @@ import (
 )
 
 const (
-	salt            = "ouwwlcq]3.djc.4iolor001mcrufn"
 	accessTokenTTL  = time.Hour * 24
 	refreshTokenTTL = time.Hour * 48
 )
