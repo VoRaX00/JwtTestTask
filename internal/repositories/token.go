@@ -20,8 +20,8 @@ func NewTokenRepository(db *sqlx.DB) *TokenRepository {
 }
 
 func (r *TokenRepository) Create(token models.RefreshToken) error {
-	query := fmt.Sprintf("INSERT INTO refresh_tokens (userId, refresh_token_hash, ip, expires_at) VALUES ($1, $2, $3, $4) RETURNING id")
-	err := r.db.QueryRow(query, token.UserId, token.RefreshTokenHash, token.ExpiresAt).Err()
+	query := fmt.Sprintf("INSERT INTO refresh_tokens (user_id, refresh_token_hash, ip, expires_at) VALUES ($1, $2, $3, $4) RETURNING id")
+	err := r.db.QueryRow(query, token.UserId, token.RefreshTokenHash, token.Ip, token.ExpiresAt).Err()
 	return err
 }
 
@@ -29,7 +29,9 @@ func (r *TokenRepository) RefreshTokens(newTokenHash, tokenHash, ipClient string
 	var userId string
 	var expiresAt time.Time
 	var ip string
-	query := fmt.Sprintf(`SELETE user_id, expires_at, ip FROM refresh_tokens WHERE refresh_token_hash=$1`)
+	query := fmt.Sprintf(`SELECT user_id, expires_at, ip FROM refresh_tokens WHERE refresh_token_hash=$1`)
+	// $2a$10$sPlyJMbCbrS3m/R3EeP0JuWodGT6nIeqg/IzLhi.tgubN7jYqLxcC
+	// $2a$10$/e6J60m36qJ5hxHkTybD.uQESOw.hgKITpjrsbh24RJUJnw0sLKcK
 	err := r.db.QueryRow(query, tokenHash).Scan(&userId, &expiresAt, &ip)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -43,10 +45,10 @@ func (r *TokenRepository) RefreshTokens(newTokenHash, tokenHash, ipClient string
 	}
 
 	expiresAt = time.Now().Add(ttl)
-	query = fmt.Sprintf("UPDATE refresh_tokens SET refresh_token_hash=$1, expires_at=$2, created_at=CURRENT_TIMESTAMP WHERE user_id=$3")
-	_, err = r.db.Exec(query, newTokenHash, expiresAt, userId)
+	query = fmt.Sprintf("UPDATE refresh_tokens SET refresh_token_hash=$1, expires_at=$2, ip=$3, created_at=CURRENT_TIMESTAMP WHERE user_id=$4")
+	_, err = r.db.Exec(query, newTokenHash, expiresAt, ipClient, userId)
 	if ip != ipClient {
-		return ip, err
+		return ipClient, err
 	}
 	return "", err
 }

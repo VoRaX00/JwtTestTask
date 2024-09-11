@@ -4,7 +4,6 @@ import "JwtTestTask/models"
 
 type IUserService interface {
 	Create(user models.User) (string, error)
-	SendMessageEmail(email, message string) error
 	generatePasswordHash(password string) string
 }
 

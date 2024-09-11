@@ -40,7 +40,7 @@ func (s *TokenService) GenerateTokens(userId, ipClient string) (map[string]strin
 	if err != nil {
 		return nil, err
 	}
-
+	//geddBxivScin6CPahyZiJCCTw6nm7ZK7xwKvQ2UtieU=
 	tokens["refresh_token"] = refreshToken
 
 	err = s.create(refreshToken, userId, ipClient)
@@ -65,7 +65,12 @@ func (s *TokenService) RefreshTokens(token, ipClient string) (map[string]string,
 		return nil, err
 	}
 
-	ip, err := s.repo.RefreshTokens(hashNewToken, token, ipClient, refreshTokenTTL)
+	hashToken, err := s.tokenManager.HashRefreshToken(token)
+	if err != nil {
+		return nil, err
+	}
+
+	ip, err := s.repo.RefreshTokens(hashNewToken, hashToken, ipClient, refreshTokenTTL)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +98,9 @@ func (s *TokenService) RefreshTokens(token, ipClient string) (map[string]string,
 }
 
 func (s *TokenService) create(token, userId, ipClient string) error {
+	// $2a$10$cjhlRtRwx8TO48nGyGs5B.KSBM0NJeXPKHD5tSDvQgNQBiUemx5j.
 	hash, err := s.tokenManager.HashRefreshToken(token)
+	expiresAt := time.Now().Add(refreshTokenTTL)
 	if err != nil {
 		return err
 	}
@@ -102,7 +109,7 @@ func (s *TokenService) create(token, userId, ipClient string) error {
 		UserId:           userId,
 		RefreshTokenHash: hash,
 		Ip:               ipClient,
-		ExpiresAt:        refreshTokenTTL,
+		ExpiresAt:        expiresAt,
 	}
 	return s.repo.Create(refreshToken)
 }

@@ -1,10 +1,11 @@
 package auth
 
 import (
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"errors"
 	"github.com/dgrijalva/jwt-go"
-	"golang.org/x/crypto/bcrypt"
 	"math/rand"
 	"time"
 )
@@ -46,13 +47,11 @@ func (m *Manager) NewRefreshToken() (string, error) {
 	if _, err := r.Read(b); err != nil {
 		return "", err
 	}
-	return base64.StdEncoding.EncodeToString(b), nil
+	return base64.URLEncoding.EncodeToString(b), nil
 }
 
 func (m *Manager) HashRefreshToken(token string) (string, error) {
-	hash, err := bcrypt.GenerateFromPassword([]byte(token), bcrypt.DefaultCost)
-	if err != nil {
-		return "", err
-	}
-	return string(hash), nil
+	hash := sha256.New()
+	hash.Write([]byte(token))
+	return hex.EncodeToString(hash.Sum(nil)), nil
 }
