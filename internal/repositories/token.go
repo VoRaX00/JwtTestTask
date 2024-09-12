@@ -30,8 +30,7 @@ func (r *TokenRepository) RefreshTokens(newTokenHash, tokenHash, ipClient string
 	var expiresAt time.Time
 	var ip string
 	query := fmt.Sprintf(`SELECT user_id, expires_at, ip FROM refresh_tokens WHERE refresh_token_hash=$1`)
-	// $2a$10$sPlyJMbCbrS3m/R3EeP0JuWodGT6nIeqg/IzLhi.tgubN7jYqLxcC
-	// $2a$10$/e6J60m36qJ5hxHkTybD.uQESOw.hgKITpjrsbh24RJUJnw0sLKcK
+
 	err := r.db.QueryRow(query, tokenHash).Scan(&userId, &expiresAt, &ip)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
