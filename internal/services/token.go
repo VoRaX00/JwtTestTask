@@ -39,9 +39,8 @@ func (s *TokenService) GenerateTokens(userId, ipClient string) (map[string]strin
 	if err != nil {
 		return nil, err
 	}
-	//geddBxivScin6CPahyZiJCCTw6nm7ZK7xwKvQ2UtieU=
-	tokens["refresh_token"] = refreshToken
 
+	tokens["refresh_token"] = refreshToken
 	err = s.create(refreshToken, userId, ipClient)
 	if err != nil {
 		return nil, err
@@ -51,7 +50,7 @@ func (s *TokenService) GenerateTokens(userId, ipClient string) (map[string]strin
 
 const emailWarning = "В ваш аккаунт зашли с другого устройства"
 
-func (s *TokenService) RefreshTokens(token, ipClient string) (map[string]string, error) {
+func (s *TokenService) RefreshTokens(token Tokens, ipClient string) (map[string]string, error) {
 	tokens := map[string]string{}
 
 	refreshToken, err := s.tokenManager.NewRefreshToken()
@@ -64,7 +63,7 @@ func (s *TokenService) RefreshTokens(token, ipClient string) (map[string]string,
 		return nil, err
 	}
 
-	hashToken, err := s.tokenManager.HashRefreshToken(token)
+	hashToken, err := s.tokenManager.HashRefreshToken(token.RefreshToken)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +96,6 @@ func (s *TokenService) RefreshTokens(token, ipClient string) (map[string]string,
 }
 
 func (s *TokenService) create(token, userId, ipClient string) error {
-	// $2a$10$cjhlRtRwx8TO48nGyGs5B.KSBM0NJeXPKHD5tSDvQgNQBiUemx5j.
 	hash, err := s.tokenManager.HashRefreshToken(token)
 	expiresAt := time.Now().Add(refreshTokenTTL)
 	if err != nil {

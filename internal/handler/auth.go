@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"JwtTestTask/internal/services"
 	"JwtTestTask/models"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -41,10 +42,16 @@ func (h *Handler) SignUp(c *gin.Context) {
 }
 
 func (h *Handler) RefreshTokens(c *gin.Context) {
-	token := c.Query("refresh_token")
+	//token := c.Query("refresh_token")
+	var input services.Tokens
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		NewErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
 
 	ip := c.ClientIP()
-	tokens, err := h.service.RefreshTokens(token, ip)
+	tokens, err := h.service.RefreshTokens(input, ip)
 	if err != nil {
 		NewErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
