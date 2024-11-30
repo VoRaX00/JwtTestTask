@@ -23,7 +23,6 @@ func New(log *slog.Logger, port string, handler http.Handler) *Server {
 	}
 }
 
-// S -> a Sb->E A->a/
 func (s *Server) MustRun() {
 	err := s.Run()
 	if err != nil && errors.Is(err, http.ErrServerClosed) {
