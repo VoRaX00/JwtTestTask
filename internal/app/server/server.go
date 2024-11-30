@@ -1,8 +1,10 @@
 package server
 
 import (
+	"JwtTestTask/internal/config"
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"time"
@@ -12,14 +14,16 @@ type Server struct {
 	log        *slog.Logger
 	httpServer *http.Server
 	handler    http.Handler
-	port       string
+	port       int
+	timeout    time.Duration
 }
 
-func New(log *slog.Logger, port string, handler http.Handler) *Server {
+func New(log *slog.Logger, cfg config.CfgServer, handler http.Handler) *Server {
 	return &Server{
 		log:     log,
 		handler: handler,
-		port:    port,
+		port:    cfg.Port,
+		timeout: cfg.Timeout,
 	}
 }
 
@@ -36,11 +40,11 @@ func (s *Server) Run() error {
 		Info("starting server")
 
 	s.httpServer = &http.Server{
-		Addr:           ":" + s.port,
+		Addr:           fmt.Sprintf(":%d", s.port),
 		Handler:        s.handler,
 		MaxHeaderBytes: 1 << 20,
-		ReadTimeout:    5 * time.Second,
-		WriteTimeout:   5 * time.Second,
+		ReadTimeout:    s.timeout,
+		WriteTimeout:   s.timeout,
 	}
 	return s.httpServer.ListenAndServe()
 }

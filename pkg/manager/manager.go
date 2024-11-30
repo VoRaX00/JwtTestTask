@@ -1,10 +1,9 @@
-package auth
+package manager
 
 import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
-	"errors"
 	"github.com/dgrijalva/jwt-go"
 	"math/rand"
 	"time"
@@ -19,11 +18,8 @@ type Manager struct {
 	signingKey string
 }
 
-func NewManager(signInKey string) (*Manager, error) {
-	if signInKey == "" {
-		return nil, errors.New("signInKey is empty")
-	}
-	return &Manager{signingKey: signInKey}, nil
+func NewManager(signInKey string) *Manager {
+	return &Manager{signingKey: signInKey}
 }
 
 func (m *Manager) NewAccessToken(ipClient string, ttl time.Duration) (string, error) {

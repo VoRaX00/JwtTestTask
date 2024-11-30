@@ -1,15 +1,14 @@
 package handler
 
 import (
-	"JwtTestTask/internal/services"
 	"github.com/gin-gonic/gin"
 )
 
 type Handler struct {
-	service *services.Service
+	service *Service
 }
 
-func NewHandler(service *services.Service) *Handler {
+func NewHandler(service *Service) *Handler {
 	return &Handler{
 		service: service,
 	}
@@ -18,7 +17,7 @@ func NewHandler(service *services.Service) *Handler {
 func (h *Handler) InitRoutes() *gin.Engine {
 	router := gin.New()
 
-	auth := router.Group("/auth")
+	auth := router.Group("/manager")
 	{
 		auth.POST("/getPair", h.GetPair)
 		auth.POST("/signUp", h.SignUp)

@@ -1,9 +1,10 @@
-package services
+package auth
 
 import (
-	"JwtTestTask/internal/repositories"
+	"JwtTestTask/internal/services"
+	authrepo "JwtTestTask/internal/storage/auth"
 	"JwtTestTask/models"
-	"JwtTestTask/pkg/auth"
+	"JwtTestTask/pkg/manager"
 	"net/smtp"
 	"os"
 	"time"
@@ -15,14 +16,15 @@ const (
 )
 
 type TokenService struct {
-	repo         repositories.ITokenRepository
-	tokenManager auth.TokenManager
+	repo         authrepo.ITokenRepository
+	tokenManager manager.TokenManager
 }
 
-func NewTokenService(repo repositories.ITokenRepository, tokenManager auth.TokenManager) *TokenService {
+func NewTokenService(repo authrepo.ITokenRepository) *TokenService {
+	signingKey := os.Getenv("JWT_SIGNING_KEY")
 	return &TokenService{
 		repo:         repo,
-		tokenManager: tokenManager,
+		tokenManager: manager.NewManager(signingKey),
 	}
 }
 
@@ -50,7 +52,7 @@ func (s *TokenService) GenerateTokens(userId, ipClient string) (map[string]strin
 
 const emailWarning = "В ваш аккаунт зашли с другого устройства"
 
-func (s *TokenService) RefreshTokens(token Tokens, ipClient string) (map[string]string, error) {
+func (s *TokenService) RefreshTokens(token services.Tokens, ipClient string) (map[string]string, error) {
 	tokens := map[string]string{}
 
 	refreshToken, err := s.tokenManager.NewRefreshToken()

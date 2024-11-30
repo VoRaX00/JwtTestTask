@@ -1,8 +1,12 @@
 package app
 
 import (
-	"JwtTestTask/internal/server"
+	"JwtTestTask/internal/app/server"
+	"JwtTestTask/internal/config"
+	"JwtTestTask/internal/handler"
+	"JwtTestTask/internal/storage"
 	"JwtTestTask/internal/storage/postgres"
+	"context"
 	"fmt"
 	"github.com/jmoiron/sqlx"
 	"github.com/pressly/goose"
@@ -12,16 +16,24 @@ import (
 type App struct {
 	Server *server.Server
 	DB     *sqlx.DB
+	log    *slog.Logger
 }
 
-func New(log *slog.Logger, storagePath, port string) *App {
-	//db, err := connectDB(storagePath)
-	//if err != nil {
-	//	log.Warn(err.Error())
-	//}
+func New(log *slog.Logger, storagePath string, cfg config.CfgServer) *App {
+	db, err := connectDB(storagePath)
+	if err != nil {
+		log.Warn(err.Error())
+	}
 
-	//repos :=
-	return nil
+	repos := storage.NewRepository(db)
+	service := handler.NewService(repos)
+	handlers := handler.NewHandler(service)
+	srv := server.New(log, cfg, handlers.InitRoutes())
+	return &App{
+		Server: srv,
+		DB:     db,
+		log:    log,
+	}
 }
 
 func connectDB(storagePath string) (*sqlx.DB, error) {
@@ -34,4 +46,12 @@ func connectDB(storagePath string) (*sqlx.DB, error) {
 		return db, fmt.Errorf("error upgrading database: %v", err)
 	}
 	return db, nil
+}
+
+func (a *App) Stop(ctx context.Context) {
+	err := a.DB.Close()
+	if err != nil {
+		a.log.Warn(err.Error())
+	}
+	a.Server.Stop(ctx)
 }

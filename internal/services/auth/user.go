@@ -1,7 +1,7 @@
-package services
+package auth
 
 import (
-	"JwtTestTask/internal/repositories"
+	authrepo "JwtTestTask/internal/storage/auth"
 	"JwtTestTask/models"
 	"crypto/sha256"
 	"fmt"
@@ -10,10 +10,10 @@ import (
 )
 
 type UserService struct {
-	repo repositories.IUserRepository
+	repo authrepo.IUserRepository
 }
 
-func NewUserService(repo repositories.IUserRepository) *UserService {
+func NewUserService(repo authrepo.IUserRepository) *UserService {
 	return &UserService{
 		repo: repo,
 	}
