@@ -4,7 +4,6 @@ import (
 	"JwtTestTask/internal/app/server"
 	"JwtTestTask/internal/config"
 	"JwtTestTask/internal/handler"
-	"JwtTestTask/internal/storage"
 	"JwtTestTask/internal/storage/postgres"
 	"context"
 	"fmt"
@@ -20,32 +19,32 @@ type App struct {
 }
 
 func New(log *slog.Logger, storagePath string, cfg config.CfgServer) *App {
-	db, err := connectDB(storagePath)
+	repos, err := connectDB(storagePath)
 	if err != nil {
 		log.Warn(err.Error())
 	}
 
-	repos := storage.NewRepository(db)
 	service := handler.NewService(repos)
 	handlers := handler.NewHandler(service)
 	srv := server.New(log, cfg, handlers.InitRoutes())
 	return &App{
 		Server: srv,
-		DB:     db,
+		DB:     repos.DB,
 		log:    log,
 	}
 }
 
-func connectDB(storagePath string) (*sqlx.DB, error) {
-	db, err := postgres.New(storagePath)
+func connectDB(storagePath string) (*postgres.Storage, error) {
+	newStorage, err := postgres.New(storagePath)
+
 	if err != nil {
 		panic("error connecting to database: " + err.Error())
 	}
 
-	if err = goose.Up(db.DB, "./storage/migrations"); err != nil {
-		return db, fmt.Errorf("error upgrading database: %v", err)
+	if err = goose.Up(newStorage.DB.DB, "./storage/migrations"); err != nil {
+		return newStorage, fmt.Errorf("error upgrading database: %v", err)
 	}
-	return db, nil
+	return newStorage, nil
 }
 
 func (a *App) Stop(ctx context.Context) {

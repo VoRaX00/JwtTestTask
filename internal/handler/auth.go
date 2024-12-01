@@ -30,7 +30,7 @@ func (h *Handler) SignUp(c *gin.Context) {
 		return
 	}
 
-	id, err := h.service.Create(input)
+	id, err := h.service.CreateUser(input)
 	if err != nil {
 		NewErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
@@ -42,15 +42,14 @@ func (h *Handler) SignUp(c *gin.Context) {
 }
 
 func (h *Handler) RefreshTokens(c *gin.Context) {
-	//token := c.Query("refresh_token")
 	var input services.Tokens
-
 	if err := c.ShouldBindJSON(&input); err != nil {
 		NewErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	ip := c.ClientIP()
+
 	tokens, err := h.service.RefreshTokens(input, ip)
 	if err != nil {
 		NewErrorResponse(c, http.StatusInternalServerError, err.Error())

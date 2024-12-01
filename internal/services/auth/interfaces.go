@@ -1,19 +1,16 @@
 package auth
 
 import (
-	"JwtTestTask/internal/services"
 	"JwtTestTask/models"
+	"time"
 )
 
-type IUserService interface {
-	Create(user models.User) (string, error)
-	generatePasswordHash(password string) string
+type UserProvider interface {
+	CreateUser(user models.User) (string, error)
 }
-
-type ITokenService interface {
-	GenerateTokens(userId, ipClient string) (map[string]string, error)
-	SendMessageEmail(email, message string) error
-	RefreshTokens(token services.Tokens, ipClient string) (map[string]string, error)
+type TokenProvider interface {
+	CreateToken(token models.RefreshToken) error
+	RefreshToken(refreshTokenHash string) (*models.RefreshToken, error)
+	RefreshTokens(newTokenHash, tokenHash, ipClient string, ttl time.Duration) (string, error)
 	GetUserEmail(token string) (string, error)
-	create(token, userId, ipClient string) error
 }

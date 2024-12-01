@@ -19,6 +19,8 @@ const (
 	envProd  = "prod"
 )
 
+// TODO: написать тесты
+
 func main() {
 	if err := godotenv.Load(); err != nil {
 		panic("Error loading .env file: " + err.Error())

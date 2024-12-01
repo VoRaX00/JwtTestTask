@@ -1,18 +1,26 @@
 package handler
 
 import (
+	"JwtTestTask/internal/services"
 	"JwtTestTask/internal/services/auth"
-	"JwtTestTask/internal/storage"
+	"JwtTestTask/internal/storage/postgres"
+	"JwtTestTask/models"
 )
 
-type Service struct {
-	auth.IUserService
-	auth.ITokenService
+type Auth interface {
+	CreateUser(user models.User) (string, error)
+	GenerateTokens(userId, ipClient string) (map[string]string, error)
+	SendMessageEmail(email, message string) error
+	RefreshTokens(token services.Tokens, ipClient string) (map[string]string, error)
+	GetUserEmail(token string) (string, error)
 }
 
-func NewService(repo *storage.Repository) *Service {
+type Service struct {
+	Auth
+}
+
+func NewService(storage *postgres.Storage) *Service {
 	return &Service{
-		ITokenService: auth.NewTokenService(repo.Token),
-		IUserService:  auth.NewUserService(repo.User),
+		Auth: auth.New(storage, storage),
 	}
 }
