@@ -13,7 +13,7 @@ import (
 // @ID get-pair
 // @Accept json
 // @Produce json
-// @Param userId query string false "User id"
+// @Param id query string false "User id"
 // @Success 200 {object} services.Tokens
 // @Failure 500 {object} ErrorResponse
 // @Router /manager/getPair [post]

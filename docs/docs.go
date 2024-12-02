@@ -33,7 +33,7 @@ const docTemplate = `{
                     {
                         "type": "string",
                         "description": "User id",
-                        "name": "userId",
+                        "name": "id",
                         "in": "query"
                     }
                 ],

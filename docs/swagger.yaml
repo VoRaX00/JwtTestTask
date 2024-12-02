@@ -35,7 +35,7 @@ paths:
       parameters:
       - description: User id
         in: query
-        name: userId
+        name: id
         type: string
       produces:
       - application/json

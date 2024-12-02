@@ -1,10 +1,11 @@
 package auth
 
 import (
-	models2 "JwtTestTask/internal/domain/models"
+	"JwtTestTask/internal/domain/models"
 	"JwtTestTask/internal/services"
 	"JwtTestTask/pkg/manager"
 	"crypto/sha256"
+	"database/sql"
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
@@ -40,7 +41,7 @@ func New(userProvider UserProvider, tokenProvider TokenProvider) *Auth {
 	}
 }
 
-func (s *Auth) CreateUser(user models2.User) (string, error) {
+func (s *Auth) CreateUser(user models.User) (string, error) {
 	user.Id = uuid.New().String()
 	user.Password = s.generatePasswordHash(user.Password)
 	return s.userProvider.CreateUser(user)
@@ -54,7 +55,6 @@ func (s *Auth) generatePasswordHash(password string) string {
 
 func (s *Auth) GenerateTokens(userId, ipClient string) (services.Tokens, error) {
 	var tokens services.Tokens
-
 	accessToken, err := s.tokenManager.NewAccessToken(ipClient, accessTokenTTL)
 	if err != nil {
 		return services.Tokens{}, err
@@ -67,14 +67,37 @@ func (s *Auth) GenerateTokens(userId, ipClient string) (services.Tokens, error) 
 	}
 
 	tokens.RefreshToken = refreshToken
-	err = s.create(refreshToken, userId, ipClient)
+
+	hash, err := s.tokenManager.HashRefreshToken(refreshToken)
+	foundToken, err := s.tokenProvider.GetRefreshTokenByUserId(userId)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			err = s.create(hash, userId, ipClient)
+			if err != nil {
+				return services.Tokens{}, err
+			}
+		} else {
+			return services.Tokens{}, err
+		}
+	}
+
+	err = s.tokenProvider.RefreshToken(hash, foundToken.RefreshTokenHash, ipClient, refreshTokenTTL)
 	if err != nil {
 		return services.Tokens{}, err
 	}
 	return tokens, nil
 }
 
-const emailWarning = "В ваш аккаунт зашли с другого устройства"
+func (s *Auth) create(tokenHash, userId, ipClient string) error {
+	expiresAt := time.Now().Add(refreshTokenTTL)
+	refreshToken := models.RefreshToken{
+		UserId:           userId,
+		RefreshTokenHash: tokenHash,
+		Ip:               ipClient,
+		ExpiresAt:        expiresAt,
+	}
+	return s.tokenProvider.CreateToken(refreshToken)
+}
 
 func (s *Auth) RefreshTokens(tokens services.Tokens, ipClient string) (services.Tokens, error) {
 	const op = "auth.RefreshTokens"
@@ -140,6 +163,8 @@ func (s *Auth) validateAccessToken(token string, ipClient string) error {
 	return nil
 }
 
+const emailWarning = "В ваш аккаунт зашли с другого устройства"
+
 func (s *Auth) validateRefreshToken(hashToken, ipClient string) error {
 	token, err := s.tokenProvider.GetRefreshToken(hashToken)
 	if err != nil {
@@ -167,22 +192,6 @@ func (s *Auth) validateRefreshToken(hashToken, ipClient string) error {
 		return TokenExpired
 	}
 	return nil
-}
-
-func (s *Auth) create(token, userId, ipClient string) error {
-	hash, err := s.tokenManager.HashRefreshToken(token)
-	expiresAt := time.Now().Add(refreshTokenTTL)
-	if err != nil {
-		return err
-	}
-
-	refreshToken := models2.RefreshToken{
-		UserId:           userId,
-		RefreshTokenHash: hash,
-		Ip:               ipClient,
-		ExpiresAt:        expiresAt,
-	}
-	return s.tokenProvider.CreateToken(refreshToken)
 }
 
 func (s *Auth) SendMessageEmail(email, message string) error {
