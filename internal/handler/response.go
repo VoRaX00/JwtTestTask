@@ -8,10 +8,18 @@ import (
 	"os"
 )
 
+type SuccessID struct {
+	ID string `json:"id"`
+}
+
+type ErrorResponse struct {
+	Message string `json:"message"`
+}
+
 func NewErrorResponse(c *gin.Context, code int, message string) {
 	logrus.Error(message)
-	c.AbortWithStatusJSON(code, gin.H{
-		message: message,
+	c.AbortWithStatusJSON(code, ErrorResponse{
+		Message: message,
 	})
 }
 

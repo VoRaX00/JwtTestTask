@@ -9,9 +9,9 @@ import (
 
 type Auth interface {
 	CreateUser(user models.User) (string, error)
-	GenerateTokens(userId, ipClient string) (map[string]string, error)
+	GenerateTokens(userId, ipClient string) (services.Tokens, error)
 	SendMessageEmail(email, message string) error
-	RefreshTokens(token services.Tokens, ipClient string) (map[string]string, error)
+	RefreshTokens(token services.Tokens, ipClient string) (services.Tokens, error)
 	GetUserEmail(token string) (string, error)
 }
 

@@ -1,0 +1,116 @@
+definitions:
+  handler.ErrorResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  handler.SuccessID:
+    properties:
+      id:
+        type: string
+    type: object
+  services.RegisterUser:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  services.Tokens:
+    properties:
+      access_token:
+        type: string
+      refresh_token:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /manager/getPair:
+    post:
+      consumes:
+      - application/json
+      description: Creating a pair of tokens
+      operationId: get-pair
+      parameters:
+      - description: User id
+        in: query
+        name: userId
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.Tokens'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: GetPair
+      tags:
+      - auth
+  /manager/refreshTokens:
+    post:
+      consumes:
+      - application/json
+      description: Refresh tokens
+      operationId: refresh
+      parameters:
+      - description: User data
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/services.Tokens'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.Tokens'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: RefreshTokens
+      tags:
+      - auth
+  /manager/signUp:
+    post:
+      consumes:
+      - application/json
+      description: User registration
+      operationId: signUp
+      parameters:
+      - description: User data
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/services.RegisterUser'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.SuccessID'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handler.ErrorResponse'
+      summary: SignUp
+      tags:
+      - auth
+swagger: "2.0"

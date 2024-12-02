@@ -52,71 +52,71 @@ func (s *Auth) generatePasswordHash(password string) string {
 	return fmt.Sprintf("%x", hash.Sum([]byte(os.Getenv("SALT"))))
 }
 
-func (s *Auth) GenerateTokens(userId, ipClient string) (map[string]string, error) {
-	tokens := map[string]string{}
+func (s *Auth) GenerateTokens(userId, ipClient string) (services.Tokens, error) {
+	var tokens services.Tokens
 
 	accessToken, err := s.tokenManager.NewAccessToken(ipClient, accessTokenTTL)
 	if err != nil {
-		return nil, err
+		return services.Tokens{}, err
 	}
 
-	tokens["access_token"] = accessToken
+	tokens.AccessToken = accessToken
 	refreshToken, err := s.tokenManager.NewRefreshToken()
 	if err != nil {
-		return nil, err
+		return services.Tokens{}, err
 	}
 
-	tokens["refresh_token"] = refreshToken
+	tokens.RefreshToken = refreshToken
 	err = s.create(refreshToken, userId, ipClient)
 	if err != nil {
-		return nil, err
+		return services.Tokens{}, err
 	}
 	return tokens, nil
 }
 
 const emailWarning = "В ваш аккаунт зашли с другого устройства"
 
-func (s *Auth) RefreshTokens(tokens services.Tokens, ipClient string) (map[string]string, error) {
+func (s *Auth) RefreshTokens(tokens services.Tokens, ipClient string) (services.Tokens, error) {
 	const op = "auth.RefreshTokens"
 
 	err := s.validateAccessToken(tokens.AccessToken, ipClient)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return services.Tokens{}, fmt.Errorf("%s: %w", op, err)
 	}
 
 	hashToken, err := s.tokenManager.HashRefreshToken(tokens.RefreshToken)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return services.Tokens{}, fmt.Errorf("%s: %w", op, err)
 	}
 
 	err = s.validateRefreshToken(hashToken, ipClient)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return services.Tokens{}, fmt.Errorf("%s: %w", op, err)
 	}
 
 	refreshToken, err := s.tokenManager.NewRefreshToken()
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return services.Tokens{}, fmt.Errorf("%s: %w", op, err)
 	}
 
 	hashNewToken, err := s.tokenManager.HashRefreshToken(refreshToken)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", op, err)
+		return services.Tokens{}, fmt.Errorf("%s: %w", op, err)
 	}
 
 	err = s.tokenProvider.RefreshToken(hashNewToken, hashToken, ipClient, refreshTokenTTL)
 	if err != nil {
-		return nil, err
+		return services.Tokens{}, err
 	}
 
 	accessToken, err := s.tokenManager.NewAccessToken(ipClient, accessTokenTTL)
 	if err != nil {
-		return nil, err
+		return services.Tokens{}, err
 	}
 
-	return map[string]string{
-		"access_token":  accessToken,
-		"refresh_token": refreshToken,
+	return services.Tokens{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
 	}, nil
 }
 

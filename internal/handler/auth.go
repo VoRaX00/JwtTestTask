@@ -7,6 +7,16 @@ import (
 	"net/http"
 )
 
+// @Summary GetPair
+// @Tags auth
+// @Description Creating a pair of tokens
+// @ID get-pair
+// @Accept json
+// @Produce json
+// @Param userId query string false "User id"
+// @Success 200 {object} services.Tokens
+// @Failure 500 {object} ErrorResponse
+// @Router /manager/getPair [post]
 func (h *Handler) GetPair(c *gin.Context) {
 	userId := c.Query("id")
 
@@ -17,12 +27,20 @@ func (h *Handler) GetPair(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"AccessToken":  tokens["access_token"],
-		"RefreshToken": tokens["refresh_token"],
-	})
+	c.JSON(http.StatusOK, tokens)
 }
 
+// @Summary SignUp
+// @Tags auth
+// @Description User registration
+// @ID signUp
+// @Accept json
+// @Produce json
+// @Param input body services.RegisterUser true "User data"
+// @Success 200 {object} SuccessID
+// @Failure 400 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /manager/signUp [post]
 func (h *Handler) SignUp(c *gin.Context) {
 	var input models.User
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -36,11 +54,22 @@ func (h *Handler) SignUp(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"id": id,
+	c.JSON(http.StatusOK, SuccessID{
+		ID: id,
 	})
 }
 
+// @Summary RefreshTokens
+// @Tags auth
+// @Description Refresh tokens
+// @ID refresh
+// @Accept json
+// @Produce json
+// @Param input body services.Tokens true "User data"
+// @Success 200 {object} services.Tokens
+// @Failure 400 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /manager/refreshTokens [post]
 func (h *Handler) RefreshTokens(c *gin.Context) {
 	var input services.Tokens
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -56,8 +85,5 @@ func (h *Handler) RefreshTokens(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"AccessToken":  tokens["access_token"],
-		"RefreshToken": tokens["refresh_token"],
-	})
+	c.JSON(http.StatusOK, tokens)
 }
