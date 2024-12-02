@@ -22,6 +22,7 @@ func New(log *slog.Logger, storagePath string, cfg config.CfgServer) *App {
 	repos, err := connectDB(storagePath)
 	if err != nil {
 		log.Warn(err.Error())
+		panic(err)
 	}
 
 	service := handler.NewService(repos)

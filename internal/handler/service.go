@@ -1,10 +1,10 @@
 package handler
 
 import (
+	"JwtTestTask/internal/domain/models"
 	"JwtTestTask/internal/services"
 	"JwtTestTask/internal/services/auth"
 	"JwtTestTask/internal/storage/postgres"
-	"JwtTestTask/models"
 )
 
 type Auth interface {

@@ -1,0 +1,10 @@
+server:
+  port: 8080
+  timeout: "5s"
+
+db:
+  host: "localhost"
+  port: 5438
+  username: "postgres"
+  dbname: "auth_db"
+  ssl_mode: "disable"

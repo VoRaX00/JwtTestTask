@@ -17,7 +17,7 @@ type Config struct {
 
 type CfgServer struct {
 	Port    int           `yaml:"port" env-default:"8080"`
-	Timeout time.Duration `yaml:"timeout" env-default:"5"`
+	Timeout time.Duration `yaml:"timeout" env-default:"5s"`
 }
 
 type CfgDB struct {
@@ -25,7 +25,7 @@ type CfgDB struct {
 	Port     string `yaml:"port"`
 	Username string `yaml:"username"`
 	Password string `yaml:"-"`
-	DBName   string `yaml:"name"`
+	DBName   string `yaml:"dbname"`
 	SSLMode  string `yaml:"ssl_mode"`
 }
 

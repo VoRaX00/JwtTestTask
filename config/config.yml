@@ -1,9 +1,0 @@
-server:
-  port: "8080"
-
-db:
-  host: "localhost"
-  port: "5433"
-  username: "postgres"
-  dbname: "JwtTestTask_db"
-  sslmode: "disable"

@@ -1,8 +1,8 @@
 package handler
 
 import (
+	"JwtTestTask/internal/domain/models"
 	"JwtTestTask/internal/services"
-	"JwtTestTask/models"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )

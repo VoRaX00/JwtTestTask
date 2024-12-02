@@ -29,7 +29,7 @@ func New(log *slog.Logger, cfg config.CfgServer, handler http.Handler) *Server {
 
 func (s *Server) MustRun() {
 	err := s.Run()
-	if err != nil && errors.Is(err, http.ErrServerClosed) {
+	if err != nil && !errors.Is(err, http.ErrServerClosed) {
 		panic(err)
 	}
 }

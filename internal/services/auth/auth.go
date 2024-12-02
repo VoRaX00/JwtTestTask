@@ -1,8 +1,8 @@
 package auth
 
 import (
+	models2 "JwtTestTask/internal/domain/models"
 	"JwtTestTask/internal/services"
-	"JwtTestTask/models"
 	"JwtTestTask/pkg/manager"
 	"crypto/sha256"
 	"errors"
@@ -40,7 +40,7 @@ func New(userProvider UserProvider, tokenProvider TokenProvider) *Auth {
 	}
 }
 
-func (s *Auth) CreateUser(user models.User) (string, error) {
+func (s *Auth) CreateUser(user models2.User) (string, error) {
 	user.Id = uuid.New().String()
 	user.Password = s.generatePasswordHash(user.Password)
 	return s.userProvider.CreateUser(user)
@@ -89,7 +89,7 @@ func (s *Auth) RefreshTokens(tokens services.Tokens, ipClient string) (map[strin
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	err = s.validateRefreshToken(tokens.RefreshToken, ipClient)
+	err = s.validateRefreshToken(hashToken, ipClient)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -146,7 +146,7 @@ func (s *Auth) validateRefreshToken(hashToken, ipClient string) error {
 		return err
 	}
 
-	if token.RefreshTokenHash == "" {
+	if token == nil {
 		return TokenNotFound
 	}
 
@@ -163,7 +163,7 @@ func (s *Auth) validateRefreshToken(hashToken, ipClient string) error {
 		return IpNotEquals
 	}
 
-	if !time.Now().After(token.ExpiresAt) {
+	if time.Now().After(token.ExpiresAt) {
 		return TokenExpired
 	}
 	return nil
@@ -176,7 +176,7 @@ func (s *Auth) create(token, userId, ipClient string) error {
 		return err
 	}
 
-	refreshToken := models.RefreshToken{
+	refreshToken := models2.RefreshToken{
 		UserId:           userId,
 		RefreshTokenHash: hash,
 		Ip:               ipClient,

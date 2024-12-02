@@ -1,8 +1,8 @@
 package postgres
 
 import (
+	models2 "JwtTestTask/internal/domain/models"
 	"JwtTestTask/internal/storage"
-	"JwtTestTask/models"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -23,18 +23,18 @@ func New(storagePath string) (*Storage, error) {
 	return &Storage{DB: db}, nil
 }
 
-func (s *Storage) CreateToken(token models.RefreshToken) error {
+func (s *Storage) CreateToken(token models2.RefreshToken) error {
 	query := fmt.Sprintf("INSERT INTO refresh_tokens (user_id, refresh_token_hash, ip, expires_at) VALUES ($1, $2, $3, $4) RETURNING id")
 	err := s.DB.QueryRow(query, token.UserId, token.RefreshTokenHash, token.Ip, token.ExpiresAt).Err()
 	return err
 }
 
-func (s *Storage) GetRefreshToken(refreshTokenHash string) (*models.RefreshToken, error) {
+func (s *Storage) GetRefreshToken(refreshTokenHash string) (*models2.RefreshToken, error) {
 	const op = "storage.auth.RefreshToken"
-	var token models.RefreshToken
-	query := `SELECT ip, created_at, expires_at FROM refresh_tokens WHERE refresh_token_hash = $1`
+	var token models2.RefreshToken
+	query := `SELECT ip, user_id, created_at, expires_at FROM refresh_tokens WHERE refresh_token_hash = $1`
 
-	err := s.DB.QueryRow(query, refreshTokenHash).Scan(&token)
+	err := s.DB.QueryRow(query, refreshTokenHash).Scan(&token.Ip, &token.UserId, &token.CreatedAt, &token.ExpiresAt)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("%s: %w", op, storage.TokenNotFound)
@@ -68,11 +68,11 @@ func (s *Storage) GetUserEmail(token string) (string, error) {
 	return email, nil
 }
 
-func (s *Storage) CreateUser(user models.User) (string, error) {
+func (s *Storage) CreateUser(user models2.User) (string, error) {
 	query := fmt.Sprintf("INSERT INTO Users (id, email, password_hash) VALUES ($1, $2, $3) RETURNING id")
 	row := s.DB.QueryRow(query, user.Id, user.Email, user.Password)
-	if row.Scan(&user.Id) != nil {
-		return "", nil
+	if err := row.Scan(&user.Id); err != nil {
+		return "", err
 	}
 	return user.Id, nil
 }
