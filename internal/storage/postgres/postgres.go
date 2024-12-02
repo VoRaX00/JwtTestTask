@@ -29,7 +29,7 @@ func (s *Storage) CreateToken(token models.RefreshToken) error {
 	return err
 }
 
-func (s *Storage) RefreshToken(refreshTokenHash string) (*models.RefreshToken, error) {
+func (s *Storage) GetRefreshToken(refreshTokenHash string) (*models.RefreshToken, error) {
 	const op = "storage.auth.RefreshToken"
 	var token models.RefreshToken
 	query := `SELECT ip, created_at, expires_at FROM refresh_tokens WHERE refresh_token_hash = $1`
@@ -44,31 +44,11 @@ func (s *Storage) RefreshToken(refreshTokenHash string) (*models.RefreshToken, e
 	return &token, nil
 }
 
-func (s *Storage) RefreshTokens(newTokenHash, tokenHash, ipClient string, ttl time.Duration) (string, error) {
-	var userId string
-	var expiresAt time.Time
-	var ip string
-	query := fmt.Sprintf(`SELECT user_id, expires_at, ip FROM refresh_tokens WHERE refresh_token_hash=$1`)
-
-	err := s.DB.QueryRow(query, tokenHash).Scan(&userId, &expiresAt, &ip)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return "", storage.TokenNotFound
-		}
-		return "", err
-	}
-
-	if time.Now().After(expiresAt) {
-		return "", errors.New("token is expired")
-	}
-
-	expiresAt = time.Now().Add(ttl)
-	query = fmt.Sprintf("UPDATE refresh_tokens SET refresh_token_hash=$1, expires_at=$2, ip=$3, created_at=CURRENT_TIMESTAMP WHERE user_id=$4")
-	_, err = s.DB.Exec(query, newTokenHash, expiresAt, ipClient, userId)
-	if ip != ipClient {
-		return ipClient, err
-	}
-	return "", err
+func (s *Storage) RefreshToken(newTokenHash, tokenHash, ipClient string, ttl time.Duration) error {
+	expiresAt := time.Now().Add(ttl)
+	query := `UPDATE refresh_tokens SET refresh_token_hash=$1, expires_at=$2, ip=$3, created_at=CURRENT_TIMESTAMP WHERE refresh_token_hash=$4`
+	_, err := s.DB.Exec(query, newTokenHash, expiresAt, ipClient, tokenHash)
+	return err
 }
 
 func (s *Storage) GetUserEmail(token string) (string, error) {

@@ -19,8 +19,10 @@ const (
 )
 
 var (
-	IpNotEquals  = errors.New("ip not equal")
-	TokenExpired = errors.New("token expired")
+	InvalidToken  = errors.New("invalid token")
+	IpNotEquals   = errors.New("ip not equal")
+	TokenExpired  = errors.New("token expired")
+	TokenNotFound = errors.New("token not found")
 )
 
 type Auth struct {
@@ -74,56 +76,35 @@ func (s *Auth) GenerateTokens(userId, ipClient string) (map[string]string, error
 
 const emailWarning = "В ваш аккаунт зашли с другого устройства"
 
-func (s *Auth) RefreshTokens(token services.Tokens, ipClient string) (map[string]string, error) {
-	// TODO: доделать метод => исправить метод в репозитории refreshTokens
+func (s *Auth) RefreshTokens(tokens services.Tokens, ipClient string) (map[string]string, error) {
 	const op = "auth.RefreshTokens"
-	tokens := map[string]string{}
 
-	claims, err := s.tokenManager.DecodeAccessToken(token.AccessToken)
+	err := s.validateAccessToken(tokens.AccessToken, ipClient)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	userIp := claims.UserIp
-
-	hashToken, err := s.tokenManager.HashRefreshToken(token.RefreshToken)
+	hashToken, err := s.tokenManager.HashRefreshToken(tokens.RefreshToken)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	refreshToken, err := s.tokenProvider.RefreshToken(hashToken)
+	err = s.validateRefreshToken(tokens.RefreshToken, ipClient)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	if refreshToken.Ip != userIp {
-		email, err := s.tokenProvider.GetUserEmail(refreshToken.RefreshTokenHash)
-		if err != nil {
-			return nil, err
-		}
-
-		err = s.SendMessageEmail(email, emailWarning)
-		if err != nil {
-			return nil, err
-		}
-		return nil, fmt.Errorf("%s: %w", op, IpNotEquals)
-	}
-
-	if !time.Now().After(refreshToken.ExpiresAt) {
-		return nil, TokenExpired
-	}
-
-	newToken, err := s.tokenManager.NewRefreshToken()
+	refreshToken, err := s.tokenManager.NewRefreshToken()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	hashNewToken, err := s.tokenManager.HashRefreshToken(newToken)
+	hashNewToken, err := s.tokenManager.HashRefreshToken(refreshToken)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
-	_, err = s.tokenProvider.RefreshTokens(hashNewToken, hashToken, ipClient, refreshTokenTTL)
+	err = s.tokenProvider.RefreshToken(hashNewToken, hashToken, ipClient, refreshTokenTTL)
 	if err != nil {
 		return nil, err
 	}
@@ -133,9 +114,59 @@ func (s *Auth) RefreshTokens(token services.Tokens, ipClient string) (map[string
 		return nil, err
 	}
 
-	tokens["access_token"] = accessToken
-	tokens["refresh_token"] = newToken
-	return tokens, nil
+	return map[string]string{
+		"access_token":  accessToken,
+		"refresh_token": refreshToken,
+	}, nil
+}
+
+func (s *Auth) validateAccessToken(token string, ipClient string) error {
+	claims, err := s.tokenManager.DecodeAccessToken(token)
+	if err != nil {
+		return err
+	}
+
+	if claims == nil {
+		return InvalidToken
+	}
+
+	if time.Now().Unix() > claims.ExpiresAt {
+		return TokenExpired
+	}
+
+	if ipClient != claims.UserIp {
+		return IpNotEquals
+	}
+	return nil
+}
+
+func (s *Auth) validateRefreshToken(hashToken, ipClient string) error {
+	token, err := s.tokenProvider.GetRefreshToken(hashToken)
+	if err != nil {
+		return err
+	}
+
+	if token.RefreshTokenHash == "" {
+		return TokenNotFound
+	}
+
+	if token.Ip != ipClient {
+		email, err := s.tokenProvider.GetUserEmail(token.RefreshTokenHash)
+		if err != nil {
+			return err
+		}
+
+		err = s.SendMessageEmail(email, emailWarning)
+		if err != nil {
+			return err
+		}
+		return IpNotEquals
+	}
+
+	if !time.Now().After(token.ExpiresAt) {
+		return TokenExpired
+	}
+	return nil
 }
 
 func (s *Auth) create(token, userId, ipClient string) error {

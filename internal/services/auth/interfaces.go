@@ -8,9 +8,10 @@ import (
 type UserProvider interface {
 	CreateUser(user models.User) (string, error)
 }
+
 type TokenProvider interface {
 	CreateToken(token models.RefreshToken) error
-	RefreshToken(refreshTokenHash string) (*models.RefreshToken, error)
-	RefreshTokens(newTokenHash, tokenHash, ipClient string, ttl time.Duration) (string, error)
+	GetRefreshToken(refreshTokenHash string) (*models.RefreshToken, error)
+	RefreshToken(newTokenHash, tokenHash, ipClient string, ttl time.Duration) error
 	GetUserEmail(token string) (string, error)
 }
