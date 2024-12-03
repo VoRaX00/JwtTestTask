@@ -117,21 +117,6 @@ func (s *Auth) RefreshTokens(tokens services.Tokens, ipClient string) (services.
 		return services.Tokens{}, fmt.Errorf("%s: %w", op, err)
 	}
 
-	refreshToken, err := s.tokenManager.NewRefreshToken()
-	if err != nil {
-		return services.Tokens{}, fmt.Errorf("%s: %w", op, err)
-	}
-
-	hashNewToken, err := s.tokenManager.HashRefreshToken(refreshToken)
-	if err != nil {
-		return services.Tokens{}, fmt.Errorf("%s: %w", op, err)
-	}
-
-	err = s.tokenProvider.RefreshToken(hashNewToken, hashToken, ipClient, refreshTokenTTL)
-	if err != nil {
-		return services.Tokens{}, err
-	}
-
 	accessToken, err := s.tokenManager.NewAccessToken(ipClient, accessTokenTTL)
 	if err != nil {
 		return services.Tokens{}, err
@@ -139,7 +124,7 @@ func (s *Auth) RefreshTokens(tokens services.Tokens, ipClient string) (services.
 
 	return services.Tokens{
 		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
+		RefreshToken: tokens.RefreshToken,
 	}, nil
 }
 
